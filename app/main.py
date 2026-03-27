@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 
+from app.api.campaign_audiences import router as campaign_audiences_router
 from app.core.config import settings
 
 
@@ -9,6 +10,8 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc",
 )
+
+app.include_router(campaign_audiences_router)
 
 
 @app.get("/health")
