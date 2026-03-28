@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 
 from app.api.campaign_audiences import router as campaign_audiences_router
+from app.api.invitation_batches import router as invitation_batches_router
 from app.core.config import settings
 
 
@@ -12,6 +13,7 @@ app = FastAPI(
 )
 
 app.include_router(campaign_audiences_router)
+app.include_router(invitation_batches_router)
 
 
 @app.get("/health")
