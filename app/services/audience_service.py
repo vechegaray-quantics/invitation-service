@@ -4,12 +4,15 @@ from uuid import uuid4
 
 from email_validator import EmailNotValidError, validate_email
 
+from app.db import SessionLocal
+from app.models.audience_participant import AudienceParticipant
+from app.repositories.audience_repository import AudienceRepository
 from app.schemas.audience import CampaignAudienceUpsertRequest
 
 
 class AudienceService:
     def __init__(self) -> None:
-        self._store: dict[tuple[str, str], list[dict[str, Any]]] = {}
+        self._repository = AudienceRepository()
 
     def upsert_audience(
         self,
@@ -43,16 +46,19 @@ class AudienceService:
 
         now = datetime.now(UTC).replace(tzinfo=None)
         items = [
-            {
-                "participantId": f"part_{uuid4().hex[:12]}",
-                "email": email,
-                "status": "active",
-                "createdAt": now,
-            }
+            AudienceParticipant(
+                participant_id=f"part_{uuid4().hex[:12]}",
+                tenant_id=tenant_id,
+                campaign_id=campaign_id,
+                email=email,
+                status="active",
+                created_at=now,
+            )
             for email in accepted_emails
         ]
 
-        self._store[(tenant_id, campaign_id)] = items
+        with SessionLocal() as session:
+            self._repository.replace_for_campaign(session, tenant_id, campaign_id, items)
 
         return {
             "campaignId": campaign_id,
@@ -63,11 +69,20 @@ class AudienceService:
         }
 
     def get_audience(self, tenant_id: str, campaign_id: str) -> dict[str, Any]:
-        items = self._store.get((tenant_id, campaign_id), [])
+        with SessionLocal() as session:
+            rows = self._repository.list_for_campaign(session, tenant_id, campaign_id)
 
         return {
             "campaignId": campaign_id,
-            "items": items,
+            "items": [
+                {
+                    "participantId": row.participant_id,
+                    "email": row.email,
+                    "status": row.status,
+                    "createdAt": row.created_at,
+                }
+                for row in rows
+            ],
         }
 
 
