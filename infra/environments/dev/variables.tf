@@ -22,6 +22,10 @@ variable "db_user" {
   type = string
 }
 
+variable "artifact_registry_repository" {
+  type = string
+}
+
 variable "email_provider_api_key" {
   type      = string
   sensitive = true

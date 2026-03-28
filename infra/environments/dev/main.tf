@@ -128,3 +128,78 @@ resource "google_secret_manager_secret_version" "token_signing_secret_v1" {
   secret      = google_secret_manager_secret.token_signing_secret.id
   secret_data = var.token_signing_secret
 }
+
+resource "google_artifact_registry_repository" "invitation_service" {
+  project       = var.project_id
+  location      = var.region
+  repository_id = var.artifact_registry_repository
+  description   = "Docker repository for invitation-service"
+  format        = "DOCKER"
+
+  depends_on = [
+    google_project_service.artifactregistry,
+  ]
+}
+
+resource "google_cloud_run_v2_service" "invitation_service" {
+  name                 = "invitation-service"
+  location             = var.region
+  project              = var.project_id
+  ingress              = "INGRESS_TRAFFIC_ALL"
+  invoker_iam_disabled = true
+
+  template {
+    service_account = google_service_account.invitation_service.email
+
+    containers {
+      image = "${var.region}-docker.pkg.dev/${var.project_id}/${var.artifact_registry_repository}/invitation-service:dev"
+
+      env {
+        name  = "APP_ENV"
+        value = var.environment
+      }
+
+      env {
+        name = "DATABASE_URL"
+        value_source {
+          secret_key_ref {
+            secret  = google_secret_manager_secret.database_url.secret_id
+            version = "latest"
+          }
+        }
+      }
+
+      ports {
+        container_port = 8080
+      }
+
+      volume_mounts {
+        name       = "cloudsql"
+        mount_path = "/cloudsql"
+      }
+    }
+
+    volumes {
+      name = "cloudsql"
+
+      cloud_sql_instance {
+        instances = [
+          "${var.project_id}:${var.region}:${var.cloudsql_instance_name}"
+        ]
+      }
+    }
+
+    scaling {
+      min_instance_count = 0
+      max_instance_count = 1
+    }
+  }
+
+  depends_on = [
+    google_project_service.run,
+    google_project_iam_member.invitation_service_cloudsql_client,
+    google_project_iam_member.invitation_service_secret_accessor,
+    google_secret_manager_secret_version.database_url_v1,
+    google_artifact_registry_repository.invitation_service,
+  ]
+}
