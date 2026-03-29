@@ -52,3 +52,11 @@ class InvitationRepository:
     ) -> Invitation | None:
         stmt = select(Invitation).where(Invitation.invite_token == invite_token)
         return session.execute(stmt).scalar_one_or_none()
+
+    def get_by_id(
+        self,
+        session: Session,
+        invitation_id: str,
+    ) -> Invitation | None:
+        stmt = select(Invitation).where(Invitation.invitation_id == invitation_id)
+        return session.execute(stmt).scalar_one_or_none()
