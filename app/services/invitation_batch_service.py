@@ -1,5 +1,6 @@
 from datetime import UTC, datetime
 from html import escape
+from pathlib import Path
 from uuid import uuid4
 
 from fastapi import HTTPException, status
@@ -20,6 +21,7 @@ class InvitationBatchService:
         self._batch_repository = InvitationBatchRepository()
         self._audience_repository = AudienceRepository()
         self._invitation_repository = InvitationRepository()
+        self._template_cache: str | None = None
 
     def create_batch(
         self,
@@ -230,11 +232,21 @@ class InvitationBatchService:
         name = local_part.replace(".", " ").replace("_", " ").replace("-", " ").strip()
         return name.title() if name else email
 
+    def _load_email_template(self) -> str:
+        if self._template_cache is not None:
+            return self._template_cache
+
+        template_path = Path(__file__).resolve().parents[1] / "templates" / "invitation_email.html"
+        self._template_cache = template_path.read_text(encoding="utf-8")
+        return self._template_cache
+
     def _render_invitation_html(
         self,
         batch: InvitationBatch,
         invitation: Invitation,
     ) -> str:
+        template = self._load_email_template()
+
         guessed_name = self._guess_name_from_email(invitation.recipient_email)
 
         rendered_message = (
@@ -244,23 +256,31 @@ class InvitationBatchService:
             .replace("{{campaign_name}}", batch.campaign_name)
         )
 
-        body_html = escape(rendered_message).replace("\n", "<br>")
-        invite_url = escape(invitation.invite_url)
+        email_message_html = "<p style=\"margin:0 0 16px;\">{}</p>".format(
+            "</p><p style=\"margin:0 0 16px;\">".join(
+                escape(line) for line in rendered_message.splitlines() if line.strip()
+            )
+        )
 
-        return f"""
-        <html>
-          <body style="font-family: Inter, Arial, sans-serif; color: #111827; line-height: 1.5;">
-            <p>{body_html}</p>
-            <p>
-              <a href="{invite_url}" style="display:inline-block;padding:12px 16px;background:#111827;color:#ffffff;text-decoration:none;border-radius:8px;">
-                Comenzar entrevista
-              </a>
-            </p>
-            <p>Si el botón no funciona, usa este enlace:</p>
-            <p><a href="{invite_url}">{invite_url}</a></p>
-          </body>
-        </html>
-        """.strip()
+        if email_message_html == '<p style="margin:0 0 16px;"></p>':
+            email_message_html = "<p style=\"margin:0 0 16px;\">Te invitamos a participar en esta campaña.</p>"
+
+        replacements = {
+            "{{logo_url}}": settings.email_logo_url,
+            "{{hero_image_url}}": settings.email_hero_image_url,
+            "{{email_subject}}": escape(batch.email_subject),
+            "{{nombre}}": escape(guessed_name),
+            "{{campaign_name}}": escape(batch.campaign_name),
+            "{{cta_link}}": escape(invitation.invite_url),
+            "{{support_email}}": escape(settings.email_support_email),
+            "{{email_message_html}}": email_message_html,
+        }
+
+        html = template
+        for placeholder, value in replacements.items():
+            html = html.replace(placeholder, value)
+
+        return html
 
     @staticmethod
     def _to_response(batch: InvitationBatch) -> dict:
