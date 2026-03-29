@@ -7,6 +7,10 @@ class Settings(BaseSettings):
     app_env: str = "dev"
     database_url: str = "postgresql+psycopg://postgres:postgres@localhost:5432/postgres"
 
+    resend_api_key: str = ""
+    email_from: str = "Quantics <onboarding@resend.dev>"
+    public_interview_base_url: str = "https://encuestas-490902.web.app/interview"
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

@@ -6,6 +6,7 @@ from alembic import context
 from app.core.config import settings
 from app.db import Base
 from app.models.audience_participant import AudienceParticipant
+from app.models.invitation import Invitation
 from app.models.invitation_batch import InvitationBatch
 
 

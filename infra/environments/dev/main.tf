@@ -152,8 +152,7 @@ resource "google_cloud_run_v2_service" "invitation_service" {
     service_account = google_service_account.invitation_service.email
 
     containers {
-      image = "${var.region}-docker.pkg.dev/${var.project_id}/${var.artifact_registry_repository}/invitation-service:dev"
-
+	image = "${var.region}-docker.pkg.dev/${var.project_id}/${var.artifact_registry_repository}/invitation-service:batches-v1"
       env {
         name  = "APP_ENV"
         value = var.environment

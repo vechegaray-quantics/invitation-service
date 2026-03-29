@@ -1,6 +1,8 @@
 from fastapi.testclient import TestClient
 
 from app.main import app
+from app.services.email_sender import EmailSendResult
+from app.services.invitation_batch_service import email_sender
 
 
 client = TestClient(app)
@@ -22,10 +24,20 @@ def create_audience(campaign_id: str, emails: list[str], tenant_id: str = "tenan
     assert response.status_code == 200
 
 
+def batch_payload(campaign_id: str) -> dict:
+    return {
+        "campaignId": campaign_id,
+        "campaignName": "Campaña MVP",
+        "emailSubject": "Queremos conocer tu opinión",
+        "emailMessage": "Hola {{nombre}}, participa en {{campaign_name}}.",
+        "senderEmail": "research@empresa.com",
+    }
+
+
 def test_create_invitation_batch_fails_when_audience_is_empty() -> None:
     response = client.post(
         "/v1/invitation-batches",
-        json={"campaignId": "camp_empty"},
+        json=batch_payload("camp_empty"),
         headers=tenant_headers("tenant-dev"),
     )
 
@@ -38,7 +50,7 @@ def test_create_invitation_batch_returns_draft_batch() -> None:
 
     response = client.post(
         "/v1/invitation-batches",
-        json={"campaignId": "camp_batch_1"},
+        json=batch_payload("camp_batch_1"),
         headers=tenant_headers("tenant-dev"),
     )
 
@@ -57,7 +69,7 @@ def test_get_invitation_batch_returns_existing_batch() -> None:
 
     create_response = client.post(
         "/v1/invitation-batches",
-        json={"campaignId": "camp_batch_2"},
+        json=batch_payload("camp_batch_2"),
         headers=tenant_headers("tenant-dev"),
     )
     assert create_response.status_code == 200
@@ -74,17 +86,25 @@ def test_get_invitation_batch_returns_existing_batch() -> None:
     assert response.json()["campaignId"] == "camp_batch_2"
 
 
-def test_send_invitation_batch_marks_it_completed() -> None:
+def test_send_invitation_batch_marks_it_completed(monkeypatch) -> None:
     create_audience("camp_batch_3", ["ana@empresa.com", "juan@empresa.com", "maria@empresa.com"])
 
     create_response = client.post(
         "/v1/invitation-batches",
-        json={"campaignId": "camp_batch_3"},
+        json=batch_payload("camp_batch_3"),
         headers=tenant_headers("tenant-dev"),
     )
     assert create_response.status_code == 200
 
     batch_id = create_response.json()["batchId"]
+
+    def fake_send_batch(emails):
+        return [
+            EmailSendResult(success=True, provider_message_id=f"msg_{index}")
+            for index, _ in enumerate(emails)
+        ]
+
+    monkeypatch.setattr(email_sender, "send_batch", fake_send_batch)
 
     response = client.post(
         f"/v1/invitation-batches/{batch_id}/send",
@@ -104,7 +124,7 @@ def test_get_invitation_batch_is_isolated_by_tenant() -> None:
 
     create_response = client.post(
         "/v1/invitation-batches",
-        json={"campaignId": "camp_batch_4"},
+        json=batch_payload("camp_batch_4"),
         headers=tenant_headers("tenant-dev"),
     )
     assert create_response.status_code == 200
