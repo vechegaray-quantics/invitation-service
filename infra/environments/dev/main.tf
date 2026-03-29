@@ -152,7 +152,8 @@ resource "google_cloud_run_v2_service" "invitation_service" {
     service_account = google_service_account.invitation_service.email
 
     containers {
-	image = "${var.region}-docker.pkg.dev/${var.project_id}/${var.artifact_registry_repository}/invitation-service:batches-v1"
+      image = "${var.region}-docker.pkg.dev/${var.project_id}/${var.artifact_registry_repository}/invitation-service:resend-v1"
+
       env {
         name  = "APP_ENV"
         value = var.environment
@@ -166,6 +167,26 @@ resource "google_cloud_run_v2_service" "invitation_service" {
             version = "latest"
           }
         }
+      }
+
+      env {
+        name = "RESEND_API_KEY"
+        value_source {
+          secret_key_ref {
+            secret  = google_secret_manager_secret.email_provider_api_key.secret_id
+            version = "latest"
+          }
+        }
+      }
+
+      env {
+        name  = "EMAIL_FROM"
+        value = "Research <noreply@mail.quantics.cl>"
+      }
+
+      env {
+        name  = "PUBLIC_INTERVIEW_BASE_URL"
+        value = "https://encuestas-490902.web.app/interview"
       }
 
       ports {
