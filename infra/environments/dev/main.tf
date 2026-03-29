@@ -152,12 +152,15 @@ resource "google_cloud_run_v2_service" "invitation_service" {
     service_account = google_service_account.invitation_service.email
 
     containers {
-      image = "${var.region}-docker.pkg.dev/${var.project_id}/${var.artifact_registry_repository}/invitation-service:resend-v1"
-
+	image = "${var.region}-docker.pkg.dev/${var.project_id}/${var.artifact_registry_repository}/invitation-service:resend-v2"
       env {
         name  = "APP_ENV"
         value = var.environment
       }
+	env {
+  name  = "EMAIL_LOGO_URL"
+  value = "https://encuestas-490902.web.app/assets/logo-quantics.png"
+}
 
       env {
         name = "DATABASE_URL"
