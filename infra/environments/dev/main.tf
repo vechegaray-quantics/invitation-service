@@ -203,10 +203,7 @@ env {
   value = "https://encuestas-interview.web.app/interview"
 }
 
-env {
-  name  = "INTERNAL_SERVICE_TOKEN"
-  value = "dev-internal-token-20260329"
-}
+
 
       ports {
         container_port = 8080
