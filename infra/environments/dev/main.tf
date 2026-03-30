@@ -89,7 +89,7 @@ resource "google_secret_manager_secret" "database_url" {
 }
 
 resource "google_secret_manager_secret_version" "database_url_v1" {
-  secret = google_secret_manager_secret.database_url.id
+  secret      = google_secret_manager_secret.database_url.id
   secret_data = "postgresql+psycopg://${var.db_user}:${random_password.db_password.result}@/${var.db_name}?host=/cloudsql/${var.project_id}:${var.region}:${var.cloudsql_instance_name}"
 }
 
@@ -152,15 +152,27 @@ resource "google_cloud_run_v2_service" "invitation_service" {
     service_account = google_service_account.invitation_service.email
 
     containers {
-	image = "${var.region}-docker.pkg.dev/${var.project_id}/${var.artifact_registry_repository}/invitation-service:resend-v2"
+      image = "${var.region}-docker.pkg.dev/${var.project_id}/${var.artifact_registry_repository}/invitation-service:${var.container_image_tag}"
+
       env {
         name  = "APP_ENV"
         value = var.environment
       }
-	env {
-  name  = "EMAIL_LOGO_URL"
-  value = "https://encuestas-490902.web.app/assets/logo-quantics.png"
-}
+
+      env {
+        name  = "EMAIL_LOGO_URL"
+        value = "https://encuestas-490902.web.app/assets/logo-quantics.png"
+      }
+
+      env {
+        name = "INTERNAL_SERVICE_TOKEN"
+        value_source {
+          secret_key_ref {
+            secret  = "internal-services-token"
+            version = "latest"
+          }
+        }
+      }
 
       env {
         name = "DATABASE_URL"
@@ -225,4 +237,8 @@ resource "google_cloud_run_v2_service" "invitation_service" {
     google_secret_manager_secret_version.database_url_v1,
     google_artifact_registry_repository.invitation_service,
   ]
+}
+
+output "invitation_service_url" {
+  value = google_cloud_run_v2_service.invitation_service.uri
 }
