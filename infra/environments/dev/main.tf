@@ -201,8 +201,7 @@ resource "google_cloud_run_v2_service" "invitation_service" {
 
       env {
         name  = "PUBLIC_INTERVIEW_BASE_URL"
-        value = "https://encuestas-490902.web.app/interview"
-      }
+  value = "https://encuestas-interview.web.app/interview"      }
 
       ports {
         container_port = 8080
