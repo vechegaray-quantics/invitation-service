@@ -198,11 +198,15 @@ resource "google_cloud_run_v2_service" "invitation_service" {
         name  = "EMAIL_FROM"
         value = "Research <noreply@mail.quantics.cl>"
       }
+env {
+  name  = "PUBLIC_INTERVIEW_BASE_URL"
+  value = "https://encuestas-interview.web.app/interview"
+}
 
-      env {
-        name  = "PUBLIC_INTERVIEW_BASE_URL"
- 	 value = "https://encuestas-interview.web.app/interview"
-	}
+env {
+  name  = "INTERNAL_SERVICE_TOKEN"
+  value = "dev-internal-token-20260329"
+}
 
       ports {
         container_port = 8080
