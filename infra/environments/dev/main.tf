@@ -225,6 +225,7 @@ resource "google_cloud_run_v2_service" "invitation_service" {
     }
   }
 
+
   depends_on = [
     google_project_service.run,
     google_project_iam_member.invitation_service_cloudsql_client,
