@@ -33,6 +33,7 @@ jobs:
     env:
       DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/invitation_service_test
       APP_ENV: test
+      INTERNAL_SERVICE_TOKEN: ci-internal-token
 
     steps:
       - name: Checkout repository

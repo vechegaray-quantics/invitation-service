@@ -165,13 +165,8 @@ resource "google_cloud_run_v2_service" "invitation_service" {
       }
 
       env {
-        name = "INTERNAL_SERVICE_TOKEN"
-        value_source {
-          secret_key_ref {
-            secret  = "internal-services-token"
-            version = "latest"
-          }
-        }
+        name  = "INTERNAL_SERVICE_TOKEN"
+        value = var.internal_service_token
       }
 
       env {
@@ -198,12 +193,11 @@ resource "google_cloud_run_v2_service" "invitation_service" {
         name  = "EMAIL_FROM"
         value = "Research <noreply@mail.quantics.cl>"
       }
-env {
-  name  = "PUBLIC_INTERVIEW_BASE_URL"
-  value = "https://encuestas-interview.web.app/interview"
-}
 
-
+      env {
+        name  = "PUBLIC_INTERVIEW_BASE_URL"
+        value = "https://encuestas-interview.web.app/interview"
+      }
 
       ports {
         container_port = 8080

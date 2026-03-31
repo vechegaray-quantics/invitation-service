@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+from secrets import compare_digest
 
 from fastapi import APIRouter, Header, HTTPException, status
 
@@ -13,7 +14,10 @@ _repository = InvitationRepository()
 
 
 def _validate_internal_token(x_internal_service_token: str) -> None:
-    if x_internal_service_token != settings.internal_service_token:
+    if not x_internal_service_token or not compare_digest(
+        x_internal_service_token,
+        settings.internal_service_token,
+    ):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Invalid internal service token",

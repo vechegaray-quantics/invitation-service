@@ -43,6 +43,7 @@ jobs:
 
     env:
       DATABASE_URL: postgresql+psycopg://postgres:postgres@127.0.0.1:5432/postgres
+      INTERNAL_SERVICE_TOKEN: ci-internal-token
 
     steps:
       - name: Checkout
@@ -65,16 +66,22 @@ jobs:
         run: pytest -q
 
       - name: Authenticate to Google Cloud
+        id: auth
         uses: google-github-actions/auth@v3
         with:
           workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
           service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+          token_format: access_token
 
       - name: Setup gcloud
-        uses: google-github-actions/setup-gcloud@v2
+        uses: google-github-actions/setup-gcloud@v3
 
-      - name: Configure Docker for Artifact Registry
-        run: gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
+      - name: Login to Artifact Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGION }}-docker.pkg.dev
+          username: oauth2accesstoken
+          password: ${{ steps.auth.outputs.access_token }}
 
       - name: Build Docker image
         run: docker build -t "${IMAGE_URI}" .
@@ -115,6 +122,7 @@ jobs:
         env:
           TF_VAR_email_provider_api_key: ${{ secrets.EMAIL_PROVIDER_API_KEY }}
           TF_VAR_token_signing_secret: ${{ secrets.TOKEN_SIGNING_SECRET }}
+          TF_VAR_internal_service_token: ${{ secrets.INTERNAL_SERVICE_TOKEN }}
         run: |
           terraform apply -auto-approve \
             -var="container_image_tag=${GITHUB_SHA}"

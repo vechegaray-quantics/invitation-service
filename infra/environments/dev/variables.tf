@@ -43,6 +43,11 @@ variable "token_signing_secret" {
   sensitive = true
 }
 
+variable "internal_service_token" {
+  type      = string
+  sensitive = true
+}
+
 variable "container_image_tag" {
   type    = string
   default = "internal-v1"
